@@ -217,7 +217,7 @@ def dependency_manager_from_files(os_name: str, os_version: str, files: List[Pat
     all_systems = cast(List[str], nested_get(data, 'definitions/all_systems', []))
 
     os_id = "{}:{}".format(os_name, os_version)
-    if os_id in all_systems:
+    if os_id.lower() not in all_systems:
         raise ApplicationException("detected OS {} not supported".format(os_id))
 
     packages = []

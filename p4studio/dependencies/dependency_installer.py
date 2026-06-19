@@ -25,7 +25,13 @@ from utils.collections import partition
 from utils.download import download
 from utils.importlib_utils import invalidate_python_modules_cache
 from utils.install_dir_info import InstallDirCategory, install_dir_info_manager
-from utils.pip_utils import pip_install, python_packages_target_path, check_if_pip_packages_installed, pip_download
+from utils.pip_utils import (
+    pip_install,
+    python_packages_target_path,
+    check_if_pip_packages_installed,
+    pip_download,
+    python_compatible_pip_packages,
+)
 from utils.processes import command_output, execute
 from utils.subprocess_builder import subprocess_builder, SubprocessBuilder
 from utils.terminal import print_normal, compact_log
@@ -117,6 +123,7 @@ class DependencyInstaller:
     def install_pip3_dependencies(self, deps: List[str]) -> None:
         compact_log().start_new("  - {}: ".format("installing pip3 dependencies"))
         try:
+            deps = python_compatible_pip_packages(deps)
             if self.force or not check_if_pip_packages_installed(self.install_dir, self.os_name, deps):
                 working_dir = self.common_working_dir / 'pip'
                 download_dir = self.download_cache_dir / 'pip'
@@ -124,12 +131,15 @@ class DependencyInstaller:
                 pip_dir = working_dir / 'upgraded-pip'
                 pip_packages = [
                     "pip<21.0; python_version < '3.12'",
-                    "pip>21.0; python_version >= '3.12'",
+                    "pip>21.0; python_version >= '3.12' and python_version < '3.14'",
+                    "pip>=25.0; python_version >= '3.14'",
                     # it could be removed once support for python 3.5 will be dropped
                     "setuptools==44.1.1; python_version < '3.10'",
                     "setuptools==62.3.3; python_version >= '3.10' and python_version <'3.12'",
-                    "setuptools==75.6.0; python_version >= '3.12'",
-                    'wheel>=0.29,<=0.37.1',
+                    "setuptools==75.6.0; python_version >= '3.12' and python_version < '3.14'",
+                    "setuptools>=80.9.0; python_version >= '3.14'",
+                    "wheel>=0.29,<=0.37.1; python_version < '3.14'",
+                    "wheel>=0.45.1; python_version >= '3.14'",
                     "pipenv==2024.4.0; python_version >= '3.12'",
                 ]
                 pip_install(pip_dir, self.os_name, pip_packages, download_dir)

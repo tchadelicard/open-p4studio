@@ -20,6 +20,7 @@ from pathlib import Path
 
 from dependencies.source.source_dependency_config import SourceDependencyConfig
 from utils.pkg_config import check_pkg_config
+from utils.pip_utils import python3_version
 from utils.processes import execute
 
 _THRIFT_FILE = 'thrift.tar.gz'
@@ -50,7 +51,7 @@ def install_thrift(config: SourceDependencyConfig) -> None:
 
     # Set the C++ standard to 17 and other flags
     cmake_flags = (
-        f"{attrs['flags']} "
+        f"{thrift_cmake_flags(attrs['flags'])} "
         f"-DCMAKE_CXX_STANDARD=17 "
         f"-DCMAKE_PREFIX_PATH={config.install_dir} "
         f"-DCMAKE_INSTALL_PREFIX={config.install_dir} "
@@ -67,3 +68,14 @@ def install_thrift(config: SourceDependencyConfig) -> None:
 
 def _is_thrift_installed(version: str, path: Path) -> bool:
     return check_pkg_config(path, "thrift", version)
+
+
+def thrift_cmake_flags(flags: str) -> str:
+    if python3_version() < (3, 14):
+        return flags
+
+    # The SDE Python runtime uses the pip thrift package. Avoid building the
+    # source tree's Python bindings on Python 3.14, where thrift 0.21.0's
+    # Python build path is not required and is more fragile.
+    return flags.replace("-DWITH_PYTHON=ON", "-DWITH_PYTHON=OFF") \
+                .replace("-DWITH_PYTHON3=ON", "-DWITH_PYTHON3=OFF")

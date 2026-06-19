@@ -23,7 +23,43 @@ from pathlib import Path
 from typing import Tuple, List, Optional, Union
 
 from utils.distutils_utils import get_python_lib_dir
-from utils.processes import execute, check_command
+from utils.processes import execute, check_command, command_output
+
+PYTHON_3_14_PIP_REPLACEMENTS = {
+    # grpcio 1.60.0 has no Python 3.14 wheel and its source build imports
+    # pkg_resources in a PEP 517 build env where modern setuptools no longer
+    # guarantees that module.
+    'grpcio==1.60.0': 'grpcio>=1.76.0',
+    'protobuf==4.23.4': 'protobuf>=6.33.5',
+    'thrift==0.14.1': 'thrift>=0.21.0',
+    'coverage>=4.0,<6.0': 'coverage>=7.8.0',
+    'cython>=0.29.8': 'cython>=3.1.0',
+    # Keep the BF Runtime shell dependencies compatible with current IPython.
+    'ipython==7.31.1': 'ipython>=9.0.0',
+    'jedi==0.18.1': 'jedi>=0.19.2',
+    'matplotlib-inline==0.1.3': 'matplotlib-inline>=0.1.7',
+    'parso==0.8.3': 'parso>=0.8.4',
+    'pexpect==4.8.0': 'pexpect>=4.9.0',
+    'prompt-toolkit==3.0.29': 'prompt-toolkit>=3.0.51',
+    'Pygments==2.12.0': 'Pygments>=2.19.1',
+    'wcwidth==0.2.5': 'wcwidth>=0.2.13',
+}
+
+
+def python3_version() -> Tuple[int, int]:
+    version = command_output([
+        'python3',
+        '-c',
+        'import sys; print("{}.{}".format(sys.version_info.major, sys.version_info.minor))'
+    ]).decode().strip()
+    return tuple(int(part) for part in version.split('.'))
+
+
+def python_compatible_pip_packages(packages: List[str]) -> List[str]:
+    if python3_version() < (3, 14):
+        return packages
+
+    return [PYTHON_3_14_PIP_REPLACEMENTS.get(package, package) for package in packages]
 
 
 def pip_install(

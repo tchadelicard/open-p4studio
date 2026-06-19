@@ -170,6 +170,7 @@ def install_grpc(config: SourceDependencyConfig) -> None:
 
     download_grpc(config)
     build_dir = config.build_dir(copy_download_dir=True)
+    patch_abseil_for_gcc_15(build_dir)
 
     # Install submodules from sources
     install_grpc_third_party(config)
@@ -237,6 +238,20 @@ def install_grpc(config: SourceDependencyConfig) -> None:
 
     execute('make -j{} install'.format(config.jobs), grpc_build_dir, override_env)
     execute('sudo ldconfig')
+
+
+def patch_abseil_for_gcc_15(grpc_dir: Path) -> None:
+    # GCC 15 exposes a missing transitive include in Abseil lts_20230802.
+    header = grpc_dir / 'third_party/abseil-cpp/absl/container/internal/container_memory.h'
+    contents = header.read_text()
+    if '#include <cstdint>' in contents:
+        return
+
+    marker = '#include <cassert>\n'
+    if marker not in contents:
+        return
+
+    header.write_text(contents.replace(marker, marker + '#include <cstdint>\n', 1))
 
 
 def get_absl_patch(output_dir: Path) -> Path:

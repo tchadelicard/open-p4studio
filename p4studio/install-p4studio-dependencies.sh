@@ -82,6 +82,15 @@ install_ubuntu_24.04_dependencies() {
     sudo
 }
 
+install_ubuntu_26.04_dependencies() {
+  apt-get update
+  apt-get install -y \
+    python3 \
+    python3-dev \
+    python3-pip \
+    sudo
+}
+
 install_centos_8_dependencies() {
   yum --enablerepo=extras install -y epel-release
   yum clean expire-cache

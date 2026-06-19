@@ -1,6 +1,6 @@
 definitions:
-    all_systems: ['centos:9', 'debian:10', 'debian:11', 'ubuntu:20.04', 'ubuntu:22.04', 'ubuntu:24.04']
-    apt_systems: &apt_systems ['debian:10', 'debian:11', 'ubuntu:20.04', 'ubuntu:22.04', 'ubuntu:24.04']
+    all_systems: ['centos:9', 'debian:10', 'debian:11', 'ubuntu:20.04', 'ubuntu:22.04', 'ubuntu:24.04', 'ubuntu:26.04']
+    apt_systems: &apt_systems ['debian:10', 'debian:11', 'ubuntu:20.04', 'ubuntu:22.04', 'ubuntu:24.04', 'ubuntu:26.04']
 packages:
     autoconf:
         type: os
@@ -61,6 +61,9 @@ packages:
     libcurl4-gnutls-dev:
         systems: *apt_systems
         tags: [bf_platforms]
+        type: os
+    libcrypt-dev:
+        systems: *apt_systems
         type: os
     libedit-dev:
         systems: *apt_systems
@@ -130,7 +133,7 @@ packages:
         systems: *apt_systems
         type: os
     iproute2:
-        systems: ['debian:11', 'ubuntu:20.04', 'ubuntu:22.04', 'ubuntu:24.04']
+        systems: ['debian:11', 'ubuntu:20.04', 'ubuntu:22.04', 'ubuntu:24.04', 'ubuntu:26.04']
         type: os
     g++:
         systems: ['debian:10', 'debian:11']

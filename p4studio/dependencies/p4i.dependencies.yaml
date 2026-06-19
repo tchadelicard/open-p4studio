@@ -1,6 +1,6 @@
 definitions:
-    p4i_all_systems: &all_systems ['centos:9', 'debian:10', 'debian:11', 'ubuntu:20.04', 'ubuntu:22.04']
-    p4i_apt_systems: &apt_systems ['debian:10', 'debian:11', 'ubuntu:20.04', 'ubuntu:22.04']
+    p4i_all_systems: &all_systems ['centos:9', 'debian:10', 'debian:11', 'ubuntu:20.04', 'ubuntu:22.04', 'ubuntu:24.04', 'ubuntu:26.04']
+    p4i_apt_systems: &apt_systems ['debian:10', 'debian:11', 'ubuntu:20.04', 'ubuntu:22.04', 'ubuntu:24.04', 'ubuntu:26.04']
 packages:
     xdg-utils:
         systems: *all_systems
