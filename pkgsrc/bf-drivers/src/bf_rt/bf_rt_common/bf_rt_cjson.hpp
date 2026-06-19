@@ -22,6 +22,7 @@
 #define _BF_RT_CJSON_HPP
 
 #include <memory>
+#include <cstdint>
 #include <string>
 #include <map>
 #include <fstream>
