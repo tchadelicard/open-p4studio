@@ -45,6 +45,7 @@ def install_thrift(config: SourceDependencyConfig) -> None:
     build_dir = config.build_dir()
     thrift_package = config.download_dir(ensure_exists=True) / _THRIFT_FILE
     execute("tar xf {} --strip-components 1 -C {}".format(thrift_package, build_dir))
+    patch_thrift_for_gcc_15(build_dir)
 
     build_dir = build_dir / "thrift_build"
     os.makedirs(build_dir, exist_ok=True)
@@ -68,6 +69,20 @@ def install_thrift(config: SourceDependencyConfig) -> None:
 
 def _is_thrift_installed(version: str, path: Path) -> bool:
     return check_pkg_config(path, "thrift", version)
+
+
+def patch_thrift_for_gcc_15(thrift_dir: Path) -> None:
+    # GCC 15 exposes a missing transitive include in thrift 0.21.0.
+    header = thrift_dir / 'lib/cpp/src/thrift/concurrency/Mutex.h'
+    contents = header.read_text()
+    if '#include <cstdint>' in contents:
+        return
+
+    marker = '#include <thrift/TNonCopyable.h>\n'
+    if marker not in contents:
+        return
+
+    header.write_text(contents.replace(marker, marker + '#include <cstdint>\n', 1))
 
 
 def thrift_cmake_flags(flags: str) -> str:
