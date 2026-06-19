@@ -141,8 +141,13 @@ if (COMPILER_SUPPORTS_MISLEADING_INDENTATION)
   set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wno-misleading-indentation")
 endif()
 
+set(GCC15_CXX_FLAGS "")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15.0)
+  set(GCC15_CXX_FLAGS "-include cstdint")
+endif()
+
 set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   ${C_CXX_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C_CXX_FLAGS} ${GCC15_CXX_FLAGS}")
 
 # if lto is ready, build lto for all targets after this configruation
 if(LTO)

@@ -20,16 +20,6 @@ from pathlib import Path
 from dependencies.source.source_dependency_config import SourceDependencyConfig
 from utils.processes import execute
 
-LIBCLI_GCC_15_CALLOC_REPLACEMENTS = [
-    ('calloc(sizeof(struct cli_command), 1)', 'calloc(1, sizeof(struct cli_command))'),
-    ('calloc(sizeof(struct cli_def), 1)', 'calloc(1, sizeof(struct cli_def))'),
-    ('calloc(sizeof(struct cli_match_filter_state), 1)', 'calloc(1, sizeof(struct cli_match_filter_state))'),
-    ('calloc(sizeof(struct cli_range_filter_state), 1)', 'calloc(1, sizeof(struct cli_range_filter_state))'),
-    ('calloc(sizeof(int), 1)', 'calloc(1, sizeof(int))'),
-    ('calloc(sizeof(struct cli_optarg), 1)', 'calloc(1, sizeof(struct cli_optarg))'),
-    ('calloc(sizeof(struct cli_filter), 1)', 'calloc(1, sizeof(struct cli_filter))'),
-]
-
 
 def download_libcli(config: SourceDependencyConfig) -> None:
     version = config.dependency_manager().source_dependency_attributes("libcli")['version']
@@ -47,21 +37,10 @@ def install_libcli(config: SourceDependencyConfig) -> None:
 
     download_libcli(config)
     build_dir = config.build_dir(copy_download_dir=True)
-    patch_libcli_for_gcc_15(build_dir)
-    execute("make -j{}".format(config.jobs), build_dir)
+    execute("make CC='gcc -Wno-error=calloc-transposed-args' -j{}".format(config.jobs), build_dir)
     execute('make PREFIX={} install -j{}'.format(config.install_dir, config.jobs), build_dir)
     execute("sudo ldconfig")
 
 
 def _is_libcli_installed(path: Path, version: str) -> bool:
     return (path / "lib/libcli.so.{}".format(version)).exists()
-
-
-def patch_libcli_for_gcc_15(libcli_dir: Path) -> None:
-    source = libcli_dir / 'libcli.c'
-    contents = source.read_text()
-    patched = contents
-    for old, new in LIBCLI_GCC_15_CALLOC_REPLACEMENTS:
-        patched = patched.replace(old, new)
-    if patched != contents:
-        source.write_text(patched)

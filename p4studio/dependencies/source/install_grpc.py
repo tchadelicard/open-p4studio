@@ -35,6 +35,10 @@ def cmake_ccache_flags() -> str:
     return ""
 
 
+def cmake_cxx_compat_flags() -> str:
+    return "-include cstdint"
+
+
 def download_grpc(config: SourceDependencyConfig) -> None:
     grpc_attrs = config.dependency_manager().source_dependency_attributes("grpc")
 
@@ -90,14 +94,15 @@ def install_grpc_third_party(config: SourceDependencyConfig) -> None:
         override_env['LD_RUN_PATH'] = "{}:{}".format(install_lib, ld_run_path)
     grpc_dependencies = OrderedDict()
     ccache_flags = cmake_ccache_flags()
-    grpc_dependencies['abseil-cpp'] = 'cmake -DCMAKE_CXX_FLAGS=\"-std=c++17\" \
+    cxx_flags = cmake_cxx_compat_flags()
+    grpc_dependencies['abseil-cpp'] = 'cmake -DCMAKE_CXX_FLAGS=\"-std=c++17 {cxx_flags}\" \
                                       -DBUILD_SHARED_LIBS=ON \
                                       -DCMAKE_INSTALL_PREFIX={install_dir} \
                                       -DCMAKE_INSTALL_RPATH={rpath} .. \
                                       -DABSL_PROPAGATE_CXX_STD=ON \
                                       {ccache_flags} '\
                                       .format(install_dir=config.install_dir, rpath=install_lib,
-                                              ccache_flags=ccache_flags)
+                                              ccache_flags=ccache_flags, cxx_flags=cxx_flags)
     grpc_dependencies['zlib'] = 'cmake -DCMAKE_INSTALL_PREFIX={install_dir} \
                                 -DCMAKE_INSTALL_RPATH={rpath} .. \
                                 -DCMAKE_POLICY_VERSION_MINIMUM=3.12 \
@@ -170,7 +175,6 @@ def install_grpc(config: SourceDependencyConfig) -> None:
 
     download_grpc(config)
     build_dir = config.build_dir(copy_download_dir=True)
-    patch_abseil_for_gcc_15(build_dir)
 
     # Install submodules from sources
     install_grpc_third_party(config)
@@ -218,6 +222,7 @@ def install_grpc(config: SourceDependencyConfig) -> None:
     cmake_command = 'cmake -DgRPC_INSTALL=ON \
                 -DBUILD_SHARED_LIBS=ON \
                 -DgRPC_BUILD_TESTS=OFF \
+                -DCMAKE_CXX_FLAGS="{cxx_flags}" \
                 -DCMAKE_PREFIX_PATH={install_dir} \
                 -DCMAKE_INSTALL_PREFIX={install_dir} \
                 {ccache_flags} \
@@ -233,25 +238,12 @@ def install_grpc(config: SourceDependencyConfig) -> None:
                 {sp} \
                 -DCMAKE_INSTALL_RPATH={rpath} \
                 {src_dir}'.format(install_dir=config.install_dir, ccache_flags=ccache_flags,
+                                  cxx_flags=cmake_cxx_compat_flags(),
                                   sp=submodule_packages, rpath=rpath, src_dir=build_dir)
     execute(cmake_command, grpc_build_dir, override_env)
 
     execute('make -j{} install'.format(config.jobs), grpc_build_dir, override_env)
     execute('sudo ldconfig')
-
-
-def patch_abseil_for_gcc_15(grpc_dir: Path) -> None:
-    # GCC 15 exposes a missing transitive include in Abseil lts_20230802.
-    header = grpc_dir / 'third_party/abseil-cpp/absl/container/internal/container_memory.h'
-    contents = header.read_text()
-    if '#include <cstdint>' in contents:
-        return
-
-    marker = '#include <cassert>\n'
-    if marker not in contents:
-        return
-
-    header.write_text(contents.replace(marker, marker + '#include <cstdint>\n', 1))
 
 
 def get_absl_patch(output_dir: Path) -> Path:

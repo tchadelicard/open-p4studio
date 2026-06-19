@@ -13,7 +13,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 //#include "vim.h"
 //#include "termlib.pro"
 
@@ -36,15 +35,14 @@
 
 static int  getent __ARGS((char *, char *, FILE *, int));
 static int  nextent __ARGS((char *, FILE *, int));
-static int  _match __ARGS((const char *, const char *));
-static char *_addfmt __ARGS((char *, const char *, int));
-static char *_find __ARGS((char *, const char *));
+static int  _match __ARGS((char *, char *));
+static char *_addfmt __ARGS((char *, char *, int));
+static char *_find __ARGS((char *, char *));
 
 
-char * tgetstr(const char *id, char **buf);
+char * tgetstr(char *id, char **buf);
 int tgetflag(char *id);
 int tgetnum(char *id);
-int tputs(const char *cp, int affcnt, int (*outc)(int));
 #define ESC		'\033'
 
 /*
@@ -96,13 +94,13 @@ tgetent(tbuf, term)
 {
     char    tcbuf[32];		/* Temp buffer to handle */
     char    *tcptr = tcbuf;	/* extended entries */
-    const char *tcap = TERMCAPFILE; /* Default termcap file */
+    char    *tcap = TERMCAPFILE; /* Default termcap file */
     char    *tmp;
     FILE    *termcap;
     int	    retval = 0;
     int	    len;
 
-    if ((tmp = mch_getenv("TERMCAP")) != NULL)
+    if ((tmp = (char *)mch_getenv((unsigned char *)"TERMCAP")) != NULL)
     {
 	if (*tmp == '/')		/* TERMCAP = name of termcap file */
 	{
@@ -241,7 +239,6 @@ nextent(tbuf, termcap, buflen)		/* Read 1 entry from TERMCAP file */
  * Returned values: 1 for success, 0 for failure.
  */
 
-int
 tgetflag(id)
     char *id;
 {
@@ -260,7 +257,6 @@ tgetflag(id)
  * Returned values: -1 for failure, else numerical value.
  */
 
-int
 tgetnum(id)
     char *id;
 {
@@ -302,8 +298,7 @@ tgetnum(id)
 
     char *
 tgetstr(id, buf)
-    const char	*id;
-    char	**buf;
+    char	*id, **buf;
 {
     int		len = strlen(id);
     char	*tmp=tent;
@@ -360,7 +355,7 @@ tgetstr(id, buf)
 		    case '9':
 			**buf = 0;
 			    /* get up to three digits */
-			for (i = 0; i < 3 && isdigit((unsigned char)*tmp); ++i)
+			for (i = 0; i < 3 && isdigit(*tmp); ++i)
 			    **buf = **buf * 8 + *tmp++ - '0';
 			(*buf)++;
 			tmp--;
@@ -415,22 +410,21 @@ tgetstr(id, buf)
 
     char *
 tgoto(cm, col, line)
-    const char	*cm;				/* cm string, from termcap */
+    char	*cm;				/* cm string, from termcap */
     int col,					/* column, x position */
     line;					/* line, y position */
 {
     char    gx, gy,				/* x, y */
+	*ptr,					/* pointer in 'cm' */
 	reverse = 0,				/* reverse flag */
 	*bufp,					/* pointer in returned string */
 	addup = 0,				/* add upline */
 	addbak = 0,				/* add backup */
 	c;
-    const char *ptr;				/* pointer in 'cm' */
     static char buffer[32];
-    static char oops[] = "OOPS";
 
     if (!cm)
-	return oops;				/* Kludge, but standard */
+	return "OOPS";				/* Kludge, but standard */
 
     bufp = buffer;
     ptr = cm;
@@ -500,7 +494,7 @@ tgoto(cm, col, line)
 		col = col-2*(col&15);
 		break;
 	    default:				/* Unknown escape */
-		return oops;
+		return "OOPS";
 	    }
 	}
     }
@@ -508,7 +502,7 @@ tgoto(cm, col, line)
     if (addup)					/* add upline */
 	if (UP) {
 	    ptr=UP;
-	    while (isdigit((unsigned char)*ptr) || *ptr == '.')
+	    while (isdigit(*ptr) || *ptr == '.')
 		ptr++;
 	    if (*ptr == '*')
 		ptr++;
@@ -519,7 +513,7 @@ tgoto(cm, col, line)
     if (addbak)					/* add backspace */
 	if (BC) {
 	    ptr=BC;
-	    while (isdigit((unsigned char)*ptr) || *ptr == '.')
+	    while (isdigit(*ptr) || *ptr == '.')
 		ptr++;
 	    if (*ptr == '*')
 		ptr++;
@@ -560,23 +554,22 @@ long _bauds[16]={
     600,    1200,   1800,   2400,
     4800,   9600,   19200,  19200 };
 
-int
 tputs(cp, affcnt, outc)
-    const char *cp;			/* string to print */
+    char *cp;				/* string to print */
     int affcnt;				/* Number of lines affected */
-    int (*outc) __ARGS((int));		/* routine to output 1 character */
+    void (*outc) __ARGS((unsigned int));/* routine to output 1 character */
 {
     long    frac,			/* 10^(#digits after decimal point) */
 	counter,			/* digits */
 	atol __ARGS((const char *));
 
-    if (isdigit((unsigned char)*cp)) {
+    if (isdigit(*cp)) {
 	counter = 0;
 	frac = 1000;
-	while (isdigit((unsigned char)*cp))
+	while (isdigit(*cp))
 	    counter = counter * 10L + (long)(*cp++ - '0');
 	if (*cp == '.')
-	    while (isdigit((unsigned char)*++cp)) {
+	    while (isdigit(*++cp)) {
 		counter = counter * 10L + (long)(*cp++ - '0');
 		frac = frac * 10;
 	    }
@@ -610,7 +603,7 @@ tputs(cp, affcnt, outc)
  */
     static int
 _match(s1, s2)		/* returns length of text common to s1 and s2 */
-    const char *s1, *s2;
+    char *s1, *s2;
 {
     int i = 0;
 
@@ -625,12 +618,11 @@ _match(s1, s2)		/* returns length of text common to s1 and s2 */
  */
     static char *
 _find(s, set)
-    char *s;
-    const char *set;
+    char *s, *set;
 {
     for(; *s; s++)
     {
-	const char *ptr = set;
+	char	*ptr = set;
 
 	while (*ptr && *s != *ptr)
 	    ptr++;
@@ -647,8 +639,7 @@ _find(s, set)
  */
     static char *
 _addfmt(buf, fmt, val)
-    char *buf;
-    const char *fmt;
+    char *buf, *fmt;
     int val;
 {
     sprintf(buf, fmt, val);
